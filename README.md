@@ -1,9 +1,12 @@
+# Datascript MCP Server
 
-## Datascript MCP Server
+![](./demo3.png)
 
 ![](./demo1.png)
 
 ![](./demo2.png)
+
+## MCP client config
 
 ```
   "datascript-mcp": {
