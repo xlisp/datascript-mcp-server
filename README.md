@@ -49,3 +49,10 @@ Datascript MCP Server running on STDIO transport.
 }
 ```
 
+## Future
+
+1. Freely import DataScript data for querying
+2. Freely generate and insert AI-generated data
+3. Support Datomic database connections and AI queries
+4. Visualize the relationship network after querying
+
