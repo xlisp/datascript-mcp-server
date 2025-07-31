@@ -83,9 +83,7 @@
                    (try
                      (read-string custom-schema-str)
                      (catch Exception e
-                       (continuation (text-result (str "Error parsing schema: " (.getMessage e))))
-;;                        (return)
- ))
+                       (continuation (text-result (str "Error parsing schema: " (.getMessage e))))))
                    default-schema)
           {:keys [result err]} (capture-output
                                 #(do
@@ -204,7 +202,7 @@
                             ;; Reference attribute
                             (and (map? value) (:db/id value))
                             (dfs (:db/id value) (conj path current-id attr) (inc depth))
-                            
+
                             ;; Collection of references
                             (and (coll? value) (every? #(and (map? %) (:db/id %)) value))
                             (doseq [ref-entity value]
@@ -231,7 +229,10 @@
                                        (if (empty? paths)
                                          "No paths found between the entities"
                                          (str "Found " (count paths) " path(s):\n"
-                                              ;;(str/join "\n" (map-indexed #(str (inc %1) ". " (pr-str %2)) paths))
+                                           (str/join "\n" (map-indexed
+                                                            (fn [ikey item]
+                                                              (str (inc ikey) ". " (pr-str item)))
+                                                            paths))
  )))
                                      (catch Exception e
                                        (str "Error finding path: " (.getMessage e)))))]
@@ -297,8 +298,8 @@
                                   #(try
                                      (let [db @(deref db-atom)
                                            entity-ref (read-string entity-str)
-                                           entity-id (if (number? entity-ref) 
-                                                       entity-ref 
+                                           entity-id (if (number? entity-ref)
+                                                       entity-ref
                                                        (:db/id (d/entity db entity-ref)))
                                            dep-attr (read-string dep-attr-str)
                                            deps (find-dependencies db entity-id dep-attr direction)
@@ -306,8 +307,7 @@
                                        (if (empty? deps)
                                          (str "No " direction-label " found")
                                          (str "Found " (count deps) " " direction-label ":\n"
-                                              ;; (str/join "\n" (map #(str "- Entity ID: " %) deps))
-  )))
+                                           (str/join "\n" (map (fn [item] (str "- Entity ID: " item)) deps)))))
                                      (catch Exception e
                                        (str "Error finding dependencies: " (.getMessage e)))))]
         (continuation (text-result (if (str/blank? err) result (str "Error: " err))))))))
@@ -370,7 +370,7 @@
                                                  {:company/name "Tech Corp"}
                                                  {:project/name "Project A"}
                                                  {:project/name "Project B"}])
-                                   
+
                                    ;; Add relationships
                                    (d/transact! @db-atom
                                                 [{:person/name "Alice"
@@ -386,7 +386,7 @@
                                                   :person/works-for [:company/name "Tech Corp"]}
                                                  {:project/name "Project B"
                                                   :project/depends-on [[:project/name "Project A"]]}])
-                                   
+
                                    "Example database loaded with people, company, and projects"))]
       (continuation (text-result (if (str/blank? err) result (str "Error: " err)))))))
 
@@ -409,13 +409,13 @@
                                       (.tools true)
                                       (.build)))
                    (.build))]
-    
+
     ;; Add all tools
-    (doseq [tool [init-db-tool add-data-tool query-tool find-path-tool 
+    (doseq [tool [init-db-tool add-data-tool query-tool find-path-tool
                   dependency-tool show-schema-tool load-example-tool]]
       (-> (.addTool server tool)
           (.subscribe)))
-    
+
     server))
 
 (defn -main [& args]
@@ -428,19 +428,18 @@
 (comment
   ;; For REPL testing:
   (init-db!)
-  
+
   ;; Add some test data
   (d/transact! @db-atom
                [{:person/name "Alice" :person/age 30}
                 {:person/name "Bob" :person/age 25}])
-  
+
   ;; Query test
   (d/q '[:find ?name ?age
          :where
          [?e :person/name ?name]
          [?e :person/age ?age]]
        @@db-atom)
-  
+
   (mcp-server)
   )
-
