@@ -1,6 +1,6 @@
 # 🚀 Datascript MCP Server
 
-**Query. Visualize. Extend.**
+**Query. Visualize. Extend. AI.**
 A powerful Clojure-based MCP server built for querying DataScript and integrating with AI workflows.
 
 ---
