@@ -75,6 +75,9 @@ Example client setup for launching the server from Claude Desktop:
 }
 ```
 
+* Tools
+![](./tools.png)
+
 ---
 
 ## 🔮 Roadmap
