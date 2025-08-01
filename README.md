@@ -86,6 +86,7 @@ Example client setup for launching the server from Claude Desktop:
 2. **Generate and insert AI-created data on the fly**
 3. **Connect to Datomic for hybrid querying**
 4. **Visualize relationship graphs and entity networks**
+5. **Support Datahike's MCP**
 
 ---
 
