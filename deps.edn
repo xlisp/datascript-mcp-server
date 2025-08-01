@@ -7,7 +7,8 @@
         datascript/datascript {:mvn/version "1.7.5"}
         com.fasterxml.jackson.core/jackson-databind {:mvn/version "2.15.2"}}
  :aliases
- {:mcp
+ {:mcp-visual {:exec-fn datascript-mcp.visualization/viz-mcp-server}
+  :mcp
   {:exec-fn datascript-mcp.core/mcp-server}
 
   :test
