@@ -90,5 +90,11 @@ Example client setup for launching the server from Claude Desktop:
 
 ---
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
 **Built with Clojure. Powered by DataScript. Inspired by the future of intelligent querying.**
 *In the Source we trust.*
