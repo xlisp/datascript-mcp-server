@@ -1,5 +1,5 @@
 
-## visualization 
+## visualization
 
 ```
 $ clojure -X:mcp-visual
@@ -17,7 +17,7 @@ $ clojure -X:mcp-visual
     "command": "/bin/bash",
     "args": [
       "-c",
-      "cd /Users/clojure/Desktop/datascript-mcp-server-ok111 && /usr/local/bin/clojure -M -m datascript-mcp.visualization"
+      "cd /Users/clojure/Desktop/datascript-mcp-server && /usr/local/bin/clojure -M -m datascript-mcp.visualization"
     ]
   }
 

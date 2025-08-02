@@ -18,7 +18,7 @@ Available tools:
     "command": "/bin/bash",
     "args": [
       "-c",
-      "cd /Users/clojure/Desktop/datascript-mcp-server-ok111 && /usr/local/bin/clojure -M -m datascript-mcp.data-viz-mcp"
+      "cd /Users/clojure/Desktop/datascript-mcp-server && /usr/local/bin/clojure -M -m datascript-mcp.data-viz-mcp"
     ]
   }
 

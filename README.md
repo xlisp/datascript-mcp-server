@@ -69,7 +69,7 @@ Example client setup for launching the server from Claude Desktop:
     "command": "/bin/bash",
     "args": [
       "-c",
-      "cd /Users/clojure/Desktop/datascript-mcp-server-ok111 && /usr/local/bin/clojure -M -m datascript-mcp.core"
+      "cd /Users/clojure/Desktop/datascript-mcp-server && /usr/local/bin/clojure -M -m datascript-mcp.core"
     ]
   }
 }
@@ -92,4 +92,3 @@ Example client setup for launching the server from Claude Desktop:
 
 **Built with Clojure. Powered by DataScript. Inspired by the future of intelligent querying.**
 *In the Source we trust.*
-
