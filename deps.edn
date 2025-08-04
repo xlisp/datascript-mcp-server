@@ -11,6 +11,7 @@
  :aliases
  {:mcp-visual {:exec-fn datascript-mcp.visualization/viz-mcp-server}
   :mcp-data-viz {:exec-fn datascript-mcp.data-viz-mcp/mcp-server}
+  :mcp-filesystem {:exec-fn datascript-mcp.filesystem/mcp-server}
   :mcp
   {:exec-fn datascript-mcp.core/mcp-server}
 

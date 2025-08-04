@@ -88,10 +88,11 @@ Example client setup for launching the server from Claude Desktop:
 ## 🔮 Roadmap
 
 1. **Import and query any DataScript dataset**
-2. **Generate and insert AI-created data on the fly**
+2. **Generate and insert AI-created data on the fly** 👉 `add_data`
 3. **Connect to Datomic for hybrid querying**
 4. **Visualize relationship graphs and entity networks** 👉 [Visualization MCP Server](https://github.com/xlisp/visualization-mcp-server)
-5. **Support Datahike's MCP**
+5. **Support filesystem help** 👉 [filesystem-mcp-server](./src/datascript_mcp/filesystem.clj), `clojure -X :mcp-filesystem`
+6. **Support Datahike's MCP**
 
 ---
 
