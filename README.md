@@ -10,19 +10,19 @@ A powerful Clojure-based MCP server built for querying DataScript and integratin
 ### 🕸️ Graph path search and visualization
 
 * Datascript MCP Server + [Visualization MCP Server](https://github.com/xlisp/visualization-mcp-server)
-![](./demov3.png)
+![](./images/demov3.png)
 
 ### 📂 Query parent-child relationships
 
-![](./demo1.png)
+![](./images/demo1.png)
 
 ### 📊 Load examples and compute totals
 
-![](./demo3.png)
+![](./images/demo3.png)
 
 ### 🧾 Query entity properties
 
-![](./demo2.png)
+![](./images/demo2.png)
 
 ---
 
@@ -81,7 +81,7 @@ Example client setup for launching the server from Claude Desktop:
 ```
 
 * Tools
-![](./tools.png)
+![](./images/tools.png)
 
 ---
 
