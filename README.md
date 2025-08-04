@@ -87,7 +87,7 @@ Example client setup for launching the server from Claude Desktop:
 
 ## 🔮 Roadmap
 
-1. **Import and query any DataScript dataset**
+1. **Import and query any DataScript dataset** 👉 `load-db`, It's use [datascript transit](https://github.com/tonsky/datascript-transit)
 2. **Generate and insert AI-created data on the fly** 👉 `add_data`
 3. **Connect to Datomic for hybrid querying**
 4. **Visualize relationship graphs and entity networks** 👉 [Visualization MCP Server](https://github.com/xlisp/visualization-mcp-server)
