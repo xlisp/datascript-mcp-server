@@ -307,6 +307,14 @@
                                        :description "Optional query arguments as EDN vector"}}
                    :required [:query]}))
 
+(defn safe-get-db [db-atom]
+  (let [value @db-atom]
+    (cond
+      (nil? value) nil
+      (instance? datascript.conn.Conn value) (d/db value)  
+      (instance? datascript.db.DB value) value             
+      :else (try (d/db value) (catch Exception _ value)))))
+
 (defn query-callback [exchange arguments continuation]
   (future
     (if-not @db-atom
@@ -319,7 +327,7 @@
                                             args (if (and args-str (not (str/blank? args-str)))
                                                    (read-string args-str)
                                                    [])
-                                            db @(deref db-atom)
+                                            db (safe-get-db db-atom) 
                                             query-result (apply d/q query db args)]
                                         (format-result query-result))
                                       (catch Exception e
@@ -495,7 +503,8 @@
     (if-not @db-atom
       (continuation (text-result "Database not initialized. Please run init_db first."))
       (let [{:keys [result err]} (capture-output
-                                   #(let [schema (d/schema @(deref db-atom))]
+                                   #(let [db (safe-get-db db-atom)
+                                          schema (d/schema db)]
                                       (if (empty? schema)
                                         "No schema defined"
                                         (format-result schema))))]
