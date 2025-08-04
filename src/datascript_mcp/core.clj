@@ -3,7 +3,8 @@
             [datascript.core :as d]
             [clojure.walk :as walk]
             [clojure.string :as str]
-            [datascript.transit :as dt])
+            [datascript.transit :as dt]
+            [clojure.java.io :as io])
   (:gen-class)
   (:import [io.modelcontextprotocol.server.transport StdioServerTransportProvider]
            [io.modelcontextprotocol.server McpServer McpServerFeatures
@@ -44,6 +45,49 @@
 (defn init-db! []
   (reset! db-atom (d/create-conn default-schema)))
 
+;; File utilities
+(defn file-exists? [path]
+  (.exists (io/file path)))
+
+(defn read-file-content [path]
+  (slurp path))
+
+(defn load-schema-from-file [path]
+  "Load schema from file - supports both EDN and Transit formats"
+  (let [content (read-file-content path)]
+    (cond
+      (str/ends-with? path ".transit")
+      (dt/read-transit-str content)
+
+      (or (str/ends-with? path ".edn")
+          (str/ends-with? path ".clj"))
+      (read-string content)
+
+      :else
+      (try
+        ;; Try transit first, then EDN
+        (dt/read-transit-str content)
+        (catch Exception _
+          (read-string content))))))
+
+(defn load-data-from-file [path]
+  "Load data from file - supports both EDN and Transit formats"
+  (let [content (read-file-content path)]
+    (cond
+      (str/ends-with? path ".transit")
+      (dt/read-transit-str content)
+
+      (or (str/ends-with? path ".edn")
+          (str/ends-with? path ".clj"))
+      (read-string content)
+
+      :else
+      (try
+        ;; Try transit first, then EDN
+        (dt/read-transit-str content)
+        (catch Exception _
+          (read-string content))))))
+
 ;; Utility functions
 (defn capture-output [k]
   (let [out-atom (atom "")
@@ -70,29 +114,50 @@
     result
     (pr-str result)))
 
-;; 1. Initialize Database Tool
+;; 1. Initialize Database Tool (Updated)
 (def init-db-schema
   (json/write-str {:type :object
                    :properties {:schema {:type :string
-                                         :description "Optional custom schema as EDN string"}}
+                                         :description "Schema as EDN string or file path"}
+                                :schema-file {:type :string
+                                              :description "Path to schema file (EDN or Transit format)"}}
                    :required []}))
 
 (defn init-db-callback [exchange arguments continuation]
   (future
     (let [custom-schema-str (get arguments "schema")
-          schema (if (and custom-schema-str (not (str/blank? custom-schema-str)))
+          schema-file (get arguments "schema-file") ;; use arguments for schema file
+          schema (cond
+                   ;; Schema file path provided
+                   (and schema-file (not (str/blank? schema-file)))
+                   (try
+                     (if (file-exists? schema-file)
+                       (load-schema-from-file schema-file)
+                       (throw (Exception. (str "Schema file not found: " schema-file))))
+                     (catch Exception e
+                       (continuation (text-result (str "Error loading schema file: " (.getMessage e))))
+                       nil))
+
+                   ;; Schema string provided
+                   (and custom-schema-str (not (str/blank? custom-schema-str)))
                    (try
                      (read-string custom-schema-str)
                      (catch Exception e
-                       (continuation (text-result (str "Error parsing schema: " (.getMessage e))))))
-                   default-schema)
-          {:keys [result err]} (capture-output
-                                 #(do
-                                    (reset! db-atom (d/create-conn schema))
-                                    "Database initialized successfully"))]
-      (if (str/blank? err)
-        (continuation (text-result result))
-        (continuation (text-result (str "Error: " err)))))))
+                       (continuation (text-result (str "Error parsing schema: " (.getMessage e))))
+                       nil))
+
+                   ;; Use default schema
+                   :else default-schema)]
+
+      (when schema
+        (let [{:keys [result err]} (capture-output
+                                     #(do
+                                        (reset! db-atom (d/create-conn schema))
+                                        (str "Database initialized successfully with "
+                                             (count schema) " schema attributes")))]
+          (if (str/blank? err)
+            (continuation (text-result result))
+            (continuation (text-result (str "Error: " err)))))))))
 
 (def init-db-tool
   (McpServerFeatures$AsyncToolSpecification.
@@ -104,30 +169,58 @@
             (accept [this sink]
               (init-db-callback exchange arguments #(.success sink %)))))))))
 
-;; 2. Add Data Tool
+;; 2. Add Data Tool (Updated)
 (def add-data-schema
   (json/write-str {:type :object
                    :properties {:data {:type :string
-                                       :description "Data to add as EDN vector of entity maps"}}
-                   :required [:data]}))
+                                       :description "Data to add as EDN vector of entity maps or file path"}
+                                :data-file {:type :string
+                                            :description "Path to data file (EDN or Transit format)"}}
+                   :required []}))
 
 (defn add-data-callback [exchange arguments continuation]
   (future
     (if-not @db-atom
       (continuation (text-result "Database not initialized. Please run init_db first."))
       (let [data-str (get arguments "data")
-            {:keys [result err]} (capture-output
-                                   #(try
-                                      (let [data (read-string data-str)
-                                            tx-result (d/transact! @db-atom data)]
-                                        (str "Successfully added " (count (:tx-data tx-result)) " datoms"))
-                                      (catch Exception e
-                                        (str "Error adding data: " (.getMessage e)))))]
-        (continuation (text-result (if (str/blank? err) result (str "Error: " err))))))))
+            data-file (get arguments "data-file")
+            data (cond
+                   ;; Data file path provided
+                   (and data-file (not (str/blank? data-file)))
+                   (try
+                     (if (file-exists? data-file)
+                       (load-data-from-file data-file)
+                       (throw (Exception. (str "Data file not found: " data-file))))
+                     (catch Exception e
+                       (continuation (text-result (str "Error loading data file: " (.getMessage e))))
+                       nil))
+
+                   ;; Data string provided
+                   (and data-str (not (str/blank? data-str)))
+                   (try
+                     (read-string data-str)
+                     (catch Exception e
+                       (continuation (text-result (str "Error parsing data: " (.getMessage e))))
+                       nil))
+
+                   ;; No data provided
+                   :else
+                   (do
+                     (continuation (text-result "No data or data-file provided"))
+                     nil))]
+
+        (when data
+          (let [{:keys [result err]} (capture-output
+                                       #(try
+                                          (let [tx-result (d/transact! @db-atom data)]
+                                            (str "Successfully added " (count (:tx-data tx-result)) " datoms"))
+                                          (catch Exception e
+                                            (str "Error adding data: " (.getMessage e)))))]
+            (continuation (text-result (if (str/blank? err) result (str "Error: " err))))))))))
 
 (def add-data-tool
   (McpServerFeatures$AsyncToolSpecification.
-    (McpSchema$Tool. "add_data" "Add data to the Datascript database" add-data-schema)
+    (McpSchema$Tool. "add_data" "Add data to the Datascript database from string or file" add-data-schema)
     (reify java.util.function.BiFunction
       (apply [this exchange arguments]
         (Mono/create
@@ -135,7 +228,68 @@
             (accept [this sink]
               (add-data-callback exchange arguments #(.success sink %)))))))))
 
-;; 3. Query Tool
+;; 3. Load Database Tool (New)
+(def load-db-schema
+  (json/write-str {:type :object
+                   :properties {:db-file {:type :string
+                                          :description "Path to database file (Transit format)"}}
+                   :required [:db-file]}))
+
+(defn load-db-callback [exchange arguments continuation]
+  (future
+    (let [db-file (get arguments "db-file")
+          {:keys [result err]} (capture-output
+                                 #(try
+                                    (if (file-exists? db-file)
+                                      (let [db-data (dt/read-transit-str (read-file-content db-file))]
+                                        (reset! db-atom db-data)
+                                        "Database loaded successfully from file")
+                                      (str "Database file not found: " db-file))
+                                    (catch Exception e
+                                      (str "Error loading database: " (.getMessage e)))))]
+      (continuation (text-result (if (str/blank? err) result (str "Error: " err)))))))
+
+(def load-db-tool
+  (McpServerFeatures$AsyncToolSpecification.
+    (McpSchema$Tool. "load_db" "Load entire database from Transit file" load-db-schema)
+    (reify java.util.function.BiFunction
+      (apply [this exchange arguments]
+        (Mono/create
+          (reify java.util.function.Consumer
+            (accept [this sink]
+              (load-db-callback exchange arguments #(.success sink %)))))))))
+
+;; 4. Save Database Tool (New)
+(def save-db-schema
+  (json/write-str {:type :object
+                   :properties {:db-file {:type :string
+                                          :description "Path to save database file (Transit format)"}}
+                   :required [:db-file]}))
+
+(defn save-db-callback [exchange arguments continuation]
+  (future
+    (if-not @db-atom
+      (continuation (text-result "Database not initialized. Please run init_db first."))
+      (let [db-file (get arguments "db-file")
+            {:keys [result err]} (capture-output
+                                   #(try
+                                      (spit db-file (dt/write-transit-str @db-atom))
+                                      (str "Database saved successfully to " db-file)
+                                   (catch Exception e
+                                     (str "Error saving database: " (.getMessage e)))))]
+        (continuation (text-result (if (str/blank? err) result (str "Error: " err))))))))
+
+(def save-db-tool
+  (McpServerFeatures$AsyncToolSpecification.
+    (McpSchema$Tool. "save_db" "Save entire database to Transit file" save-db-schema)
+    (reify java.util.function.BiFunction
+      (apply [this exchange arguments]
+        (Mono/create
+          (reify java.util.function.Consumer
+            (accept [this sink]
+              (save-db-callback exchange arguments #(.success sink %)))))))))
+
+;; 5. Query Tool (Unchanged)
 (def query-schema
   (json/write-str {:type :object
                    :properties {:query {:type :string
@@ -173,7 +327,7 @@
             (accept [this sink]
               (query-callback exchange arguments #(.success sink %)))))))))
 
-;; 4. Find Path Tool
+;; 6. Find Path Tool (Unchanged)
 (def find-path-schema
   (json/write-str {:type :object
                    :properties {:from {:type :string
@@ -249,7 +403,7 @@
             (accept [this sink]
               (find-path-callback exchange arguments #(.success sink %)))))))))
 
-;; 5. Dependency Query Tool
+;; 7. Dependency Query Tool (Unchanged)
 (def dependency-schema
   (json/write-str {:type :object
                    :properties {:entity {:type :string
@@ -323,7 +477,7 @@
             (accept [this sink]
               (dependency-callback exchange arguments #(.success sink %)))))))))
 
-;; 6. Show Schema Tool
+;; 8. Show Schema Tool (Unchanged)
 (def show-schema-schema
   (json/write-str {:type :object}))
 
@@ -348,7 +502,7 @@
             (accept [this sink]
               (show-schema-callback exchange arguments #(.success sink %)))))))))
 
-;; 7. Example Data Tool
+;; 9. Example Data Tool (Unchanged)
 (def load-example-schema
   (json/write-str {:type :object}))
 
@@ -412,8 +566,8 @@
                  (.build))]
 
     ;; Add all tools
-    (doseq [tool [init-db-tool add-data-tool query-tool find-path-tool
-                  dependency-tool show-schema-tool load-example-tool]]
+    (doseq [tool [init-db-tool add-data-tool load-db-tool save-db-tool query-tool
+                  find-path-tool dependency-tool show-schema-tool load-example-tool]]
       (-> (.addTool server tool)
         (.subscribe)))
 
