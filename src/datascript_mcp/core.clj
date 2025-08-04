@@ -2,7 +2,8 @@
   (:require [clojure.data.json :as json]
             [datascript.core :as d]
             [clojure.walk :as walk]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [datascript.transit :as dt])
   (:gen-class)
   (:import [io.modelcontextprotocol.server.transport StdioServerTransportProvider]
            [io.modelcontextprotocol.server McpServer McpServerFeatures
