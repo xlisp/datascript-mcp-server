@@ -52,6 +52,9 @@
 (defn read-file-content [path]
   (slurp path))
 
+(comment
+  (load-schema-from-file "/Users/clojure/Documents/_think_different_everday/note-schema.clj")
+  )
 (defn load-schema-from-file [path]
   "Load schema from file - supports both EDN and Transit formats"
   (let [content (read-file-content path)]
@@ -60,7 +63,7 @@
       (dt/read-transit-str content)
 
       (or (str/ends-with? path ".edn")
-          (str/ends-with? path ".clj"))
+        (str/ends-with? path ".clj"))
       (read-string content)
 
       :else
@@ -70,6 +73,9 @@
         (catch Exception _
           (read-string content))))))
 
+(comment
+  (load-data-from-file "/Users/clojure/Documents/_think_different_everday/1714217686148.dump")
+  )
 (defn load-data-from-file [path]
   "Load data from file - supports both EDN and Transit formats"
   (let [content (read-file-content path)]
@@ -77,8 +83,11 @@
       (str/ends-with? path ".transit")
       (dt/read-transit-str content)
 
+      (str/ends-with? path ".dump")
+      (dt/read-transit-str content)
+
       (or (str/ends-with? path ".edn")
-          (str/ends-with? path ".clj"))
+        (str/ends-with? path ".clj"))
       (read-string content)
 
       :else
